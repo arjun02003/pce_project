@@ -20,6 +20,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Application">
 
+        <!-- Mapbox Maps SDK v11 Access Token Configuration -->
+        <meta-data
+            android:name="com.mapbox.maps.access_token"
+            android:value="@string/mapbox_access_token" />
+
         <activity
             android:name=".LoadingActivity"
             android:exported="true">

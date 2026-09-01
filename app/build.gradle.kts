@@ -68,6 +68,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     // Mapbox Maps SDK for map functionality
     implementation(libs.mapbox.maps)
+    // OkHttp for REST API calls to Mapbox Directions API
+    implementation(libs.okhttp)
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)

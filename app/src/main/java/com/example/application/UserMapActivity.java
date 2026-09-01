@@ -39,6 +39,13 @@ public class UserMapActivity extends AppCompatActivity {
     private TextView tvAmbulanceDriver, tvAmbulanceVehicle, tvAmbulancePhone, tvAmbulanceStatus, tvEmergencyStatus;
     private TextView tvTitleText, tvSubtitleText;
 
+    // PHASE 5: Fields for route and ETA tracking
+    private Double emergencyLatitude;
+    private Double emergencyLongitude;
+    private Double ambulanceLatitude;
+    private Double ambulanceLongitude;
+    private TextView tvETA;  // For displaying ETA
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -115,6 +122,10 @@ public class UserMapActivity extends AppCompatActivity {
         Double latitude = emergencyDoc.getDouble("latitude");
         Double longitude = emergencyDoc.getDouble("longitude");
         String status = emergencyDoc.getString("status");
+
+        // PHASE 5: Store emergency location for route calculation
+        this.emergencyLatitude = latitude;
+        this.emergencyLongitude = longitude;
 
         if (latitude != null && longitude != null && mMap != null) {
             Point emergencyPoint = Point.fromLngLat(longitude, latitude);
@@ -203,6 +214,10 @@ public class UserMapActivity extends AppCompatActivity {
     private void updateAmbulanceLocation(Double latitude, Double longitude) {
         if (mMap == null) return;
 
+        // PHASE 5: Store ambulance location for route calculation
+        this.ambulanceLatitude = latitude;
+        this.ambulanceLongitude = longitude;
+
         Point ambulancePoint = Point.fromLngLat(longitude, latitude);
         try {
             mMap.setCamera(new CameraOptions.Builder()
@@ -212,6 +227,42 @@ public class UserMapActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Error updating ambulance location", e);
         }
+
+        // PHASE 5: Calculate route if both locations are available
+        if (emergencyLatitude != null && emergencyLongitude != null &&
+            ambulanceLatitude != null && ambulanceLongitude != null) {
+            calculateAndDisplayRoute();
+        }
+    }
+
+    // PHASE 5: Calculate route using Mapbox Directions API
+    private void calculateAndDisplayRoute() {
+        com.example.application.utils.MapboxRouting.calculateRoute(
+            this,
+            ambulanceLatitude, ambulanceLongitude,
+            emergencyLatitude, emergencyLongitude,
+            new com.example.application.utils.MapboxRouting.RouteCallback() {
+                @Override
+                public void onRouteSuccess(com.example.application.utils.MapboxRouting.RouteInfo route) {
+                    Log.d(TAG, "Route calculated: " + route);
+                    
+                    // Display route information
+                    String etaText = String.format(Locale.US,
+                        "📍 Distance: %.1f km | ETA: %s",
+                        route.distanceKilometers,
+                        com.example.application.utils.MapboxRouting.formatDuration(route.durationSeconds));
+                    
+                    tvAmbulanceStatus.setText(etaText);
+                    tvSubtitleText.setText(com.example.application.utils.MapboxRouting.getETADescription(route.durationSeconds));
+                }
+
+                @Override
+                public void onRouteFailure(String errorMessage) {
+                    Log.e(TAG, "Route calculation failed: " + errorMessage);
+                    tvAmbulanceStatus.setText("📍 Location updating...");
+                }
+            }
+        );
     }
 
     private void displayAmbulanceInfo(DocumentSnapshot ambulanceDoc) {
